@@ -1,0 +1,37 @@
+name: Locally
+
+on:
+  workflow_dispatch:
+
+jobs:
+  provision:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write        # required: GitHub mints the OIDC token Locally signs in with
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set up Locally (with Microsoft.Storage)
+        uses: locallybuild/setup-locally@v1
+        with:
+          team-uuid: ${{ vars.LOCALLY_TEAM_UUID }}
+          plugins: custom
+          plugins-list: |
+            Microsoft.Storage
+
+      - name: Create a Resource Group using the Azure CLI
+        run: locally run az group create -n example -l berlin
+
+      - name: List the Resource Groups using the Azure CLI
+        run: locally run az group list
+
+      - name: Create a Storage Account using the Azure CLI
+        run: locally run az storage account create -n account1 -g example -l berlin --sku Standard_LRS
+
+      - name: Create a Container within that Storage Account
+        run: locally storage container create --account account1 --name mydata
+
+      - name: Tear down Locally
+        uses: locallybuild/setup-locally/teardown@v1
+        if: always()
